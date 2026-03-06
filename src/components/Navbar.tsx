@@ -24,7 +24,7 @@ export default function Navbar() {
               <span className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
                 <ShoppingBag size={24} />
               </span>
-              Studio Letícia
+              Loja da Let
             </Link>
           </div>
           

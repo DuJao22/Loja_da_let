@@ -1,17 +1,18 @@
-# Studio Letícia
+# Loja da Let
 
-Sistema de gerenciamento de agendamentos para manicure e nail designer.
+Sistema de vendas de shampoos, colônias, ampolas e produtos capilares.
 
 ## Funcionalidades
 
-- **Landing Page Profissional**: Apresentação dos serviços, depoimentos e contato.
-- **Agendamento Online**: Clientes podem escolher serviço, data e horário.
+- **Loja Online**: Catálogo de produtos com fotos e descrições.
+- **Carrinho de Compras**: Adição e remoção de produtos.
+- **Checkout**: Finalização de pedidos.
 - **Painel Administrativo**:
-  - Dashboard com estatísticas.
-  - Gerenciamento de Serviços (CRUD).
-  - Gerenciamento de Agendamentos (Status: Agendado, Confirmado, Concluído, Cancelado).
-  - Visualização de Clientes.
-- **Autenticação**: Login seguro para o administrador.
+  - Dashboard com estatísticas de vendas.
+  - Gerenciamento de Produtos (CRUD).
+  - Gerenciamento de Pedidos (Status: Pendente, Pago, Enviado, Entregue, Cancelado).
+  - Visualização de Clientes e Histórico de Compras.
+- **Autenticação**: Login seguro para administrador e clientes.
 
 ## Tecnologias
 

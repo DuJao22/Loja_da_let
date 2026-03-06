@@ -30,7 +30,7 @@ export default function AdminLayout() {
             <span className="bg-emerald-100 text-emerald-600 p-1.5 rounded-lg">
               <ShoppingBag size={20} />
             </span>
-            Studio Letícia
+            Loja da Let
           </h1>
         </div>
         <nav className="p-4 space-y-2">
