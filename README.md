@@ -1,11 +1,44 @@
-<div align="center">
+# Studio Letícia
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Sistema de gerenciamento de agendamentos para manicure e nail designer.
 
-  <h1>Built with AI Studio</h2>
+## Funcionalidades
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **Landing Page Profissional**: Apresentação dos serviços, depoimentos e contato.
+- **Agendamento Online**: Clientes podem escolher serviço, data e horário.
+- **Painel Administrativo**:
+  - Dashboard com estatísticas.
+  - Gerenciamento de Serviços (CRUD).
+  - Gerenciamento de Agendamentos (Status: Agendado, Confirmado, Concluído, Cancelado).
+  - Visualização de Clientes.
+- **Autenticação**: Login seguro para o administrador.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Tecnologias
 
-</div>
+- **Frontend**: React, Tailwind CSS, Framer Motion.
+- **Backend**: Node.js, Express.
+- **Banco de Dados**: SQLite3.
+- **Deploy**: Pronto para Render/Docker.
+
+## Como Rodar
+
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+
+2. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+
+3. Acesse `http://localhost:3000`.
+
+## Login Admin
+
+- **Usuário**: admin
+- **Senha**: admin123
+
+## Créditos
+
+Sistema desenvolvido por João Layon.

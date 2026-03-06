@@ -1,0 +1,166 @@
+import React, { useState } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Lock, Mail, User, Phone, MapPin } from 'lucide-react';
+import { motion } from 'motion/react';
+
+export default function ClientRegister() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const res = await fetch('/api/client/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, address, password }),
+      });
+
+      if (res.ok) {
+        // Fetch user data to update context
+        const meRes = await fetch('/api/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          login(meData.user);
+        }
+
+        // Redirect back to where they came from or home
+        const from = location.state?.from || '/';
+        navigate(from, { state: location.state });
+      } else {
+        let errorMessage = 'Erro ao criar conta';
+        try {
+          const data = await res.json();
+          errorMessage = data.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Erro do servidor: ${res.status} ${res.statusText}`;
+        }
+        setError(errorMessage);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao conectar ao servidor. Tente novamente.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12 font-sans">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100"
+      >
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-serif font-bold text-gray-900">Studio Letícia</h1>
+          <p className="text-gray-500 mt-2">Criar Conta</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm text-center mb-6 border border-red-100">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+            <div className="relative">
+              <User className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                placeholder="Seu nome"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                placeholder="(11) 99999-9999"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                placeholder="Rua, Número, Bairro"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-lg shadow-emerald-200 mt-4"
+          >
+            Cadastrar
+          </button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-gray-600">
+          Já tem uma conta?{' '}
+          <Link 
+            to="/login" 
+            state={location.state} // Pass state forward to login page
+            className="text-emerald-600 hover:text-emerald-700 font-medium"
+          >
+            Entrar
+          </Link>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
