@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingCart, X, Trash2, ArrowRight, Check, ShoppingBag, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, X, Trash2, ArrowRight, Check, ShoppingBag, Plus, Minus, Truck, Store, CreditCard, Banknote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { useCart } from '../context/CartContext';
 
 interface Product {
   id: number;
@@ -16,18 +17,28 @@ interface Product {
   stock: number;
 }
 
-interface CartItem extends Product {
-  quantity: number;
-}
-
 export default function Shop() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
+  
+  // Checkout State
+  const [deliveryMethod, setDeliveryMethod] = useState<'Retirada' | 'Entrega'>('Retirada');
+  const [paymentMethod, setPaymentMethod] = useState<'Pix' | 'Cartão' | 'Dinheiro'>('Pix');
+  
   const navigate = useNavigate();
+  const { 
+    cart, 
+    addToCart, 
+    removeFromCart, 
+    updateQuantity, 
+    cartTotal, 
+    cartCount, 
+    isCartOpen, 
+    setIsCartOpen,
+    clearCart
+  } = useCart();
 
   useEffect(() => {
     fetchProducts();
@@ -49,42 +60,12 @@ export default function Shop() {
     }
   };
 
-  const addToCart = (product: Product) => {
-    setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 } 
-            : item
-        );
-      }
-      return [...prev, { ...product, quantity: 1 }];
-    });
-    setIsCartOpen(true);
-  };
-
-  const removeFromCart = (productId: number) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
-  };
-
-  const updateQuantity = (productId: number, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.id === productId) {
-        const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
-      }
-      return item;
-    }));
-  };
-
-  const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
   const handleCheckout = async () => {
     try {
       const authRes = await fetch('/api/me');
       if (!authRes.ok) {
+        // Close cart before redirecting so it doesn't pop up immediately on return if state persisted weirdly
+        setIsCartOpen(false);
         navigate('/login?redirect=/loja');
         return;
       }
@@ -95,7 +76,9 @@ export default function Shop() {
           quantity: item.quantity,
           price: item.price
         })),
-        total: cartTotal
+        total: cartTotal,
+        deliveryMethod,
+        paymentMethod
       };
 
       const res = await fetch('/api/orders', {
@@ -106,7 +89,7 @@ export default function Shop() {
 
       if (res.ok) {
         alert('Pedido realizado com sucesso!');
-        setCart([]);
+        clearCart();
         setIsCartOpen(false);
         navigate('/me');
       } else {
@@ -223,47 +206,111 @@ export default function Shop() {
                     </button>
                   </div>
                 ) : (
-                  cart.map(item => (
-                    <div key={item.id} className="flex gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                      <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden">
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-grow flex flex-col justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900 line-clamp-1">{item.name}</h3>
-                          <p className="text-emerald-600 font-bold text-sm">R$ {item.price.toFixed(2)}</p>
+                  <>
+                    {cart.map(item => (
+                      <div key={item.id} className="flex gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="w-20 h-20 flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden">
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        
-                        <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-2 py-1 border border-gray-100">
+                        <div className="flex-grow flex flex-col justify-between">
+                          <div>
+                            <h3 className="font-medium text-gray-900 line-clamp-1">{item.name}</h3>
+                            <p className="text-emerald-600 font-bold text-sm">R$ {item.price.toFixed(2)}</p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-3 bg-gray-50 rounded-lg px-2 py-1 border border-gray-100">
+                              <button 
+                                onClick={() => updateQuantity(item.id, -1)}
+                                className="text-gray-500 hover:text-gray-900 p-1"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
+                              <button 
+                                onClick={() => updateQuantity(item.id, 1)}
+                                className="text-gray-500 hover:text-gray-900 p-1"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
                             <button 
-                              onClick={() => updateQuantity(item.id, -1)}
-                              className="text-gray-500 hover:text-gray-900 p-1"
+                              onClick={() => removeFromCart(item.id)}
+                              className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
                             >
-                              <Minus size={14} />
-                            </button>
-                            <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
-                            <button 
-                              onClick={() => updateQuantity(item.id, 1)}
-                              className="text-gray-500 hover:text-gray-900 p-1"
-                            >
-                              <Plus size={14} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
-                          <button 
-                            onClick={() => removeFromCart(item.id)}
-                            className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button 
+                      onClick={() => setIsCartOpen(false)}
+                      className="w-full py-3 mt-4 border border-emerald-600 text-emerald-600 rounded-xl font-bold hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      Continuar Comprando
+                    </button>
+
+                    {/* Checkout Options */}
+                    <div className="mt-8 space-y-6 border-t border-gray-100 pt-6">
+                      <div>
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <Truck size={18} className="text-emerald-600" />
+                          Forma de Entrega
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => setDeliveryMethod('Retirada')}
+                            className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                              deliveryMethod === 'Retirada'
+                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                : 'border-gray-200 hover:border-emerald-200'
+                            }`}
                           >
-                            <Trash2 size={16} />
+                            Retirada no Local
+                          </button>
+                          <button
+                            onClick={() => setDeliveryMethod('Entrega')}
+                            className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                              deliveryMethod === 'Entrega'
+                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                : 'border-gray-200 hover:border-emerald-200'
+                            }`}
+                          >
+                            Entrega
                           </button>
                         </div>
                       </div>
+
+                      <div>
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <CreditCard size={18} className="text-emerald-600" />
+                          Forma de Pagamento
+                        </h3>
+                        <div className="space-y-2">
+                          {['Pix', 'Cartão', 'Dinheiro'].map((method) => (
+                            <button
+                              key={method}
+                              onClick={() => setPaymentMethod(method as any)}
+                              className={`w-full p-3 rounded-xl border text-left text-sm font-medium transition-all flex items-center justify-between ${
+                                paymentMethod === method
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                  : 'border-gray-200 hover:border-emerald-200'
+                              }`}
+                            >
+                              {method}
+                              {paymentMethod === method && <Check size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  ))
+                  </>
                 )}
               </div>
 

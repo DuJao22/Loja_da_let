@@ -73,10 +73,23 @@ export async function initDb() {
         client_id INTEGER,
         total REAL NOT NULL,
         status TEXT DEFAULT 'Pendente', -- Pendente, Pago, Enviado, Entregue, Cancelado
+        delivery_method TEXT, -- 'Retirada', 'Entrega'
+        payment_method TEXT, -- 'Pix', 'Cartão', 'Dinheiro'
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(client_id) REFERENCES clients(id)
       )
     `;
+
+    // Migration: Orders table
+    try {
+      await db.sql`ALTER TABLE orders ADD COLUMN delivery_method TEXT`;
+      console.log('Migration: Added delivery_method to orders');
+    } catch (e) { /* Column exists */ }
+
+    try {
+      await db.sql`ALTER TABLE orders ADD COLUMN payment_method TEXT`;
+      console.log('Migration: Added payment_method to orders');
+    } catch (e) { /* Column exists */ }
 
     // Order Items table
     await db.sql`

@@ -160,14 +160,14 @@ async function startServer() {
 
   // Orders (Create)
   app.post('/api/orders', authenticateToken, async (req: any, res) => {
-    const { items, total } = req.body; // items: [{ productId, quantity, price }]
+    const { items, total, deliveryMethod, paymentMethod } = req.body; // items: [{ productId, quantity, price }]
     const client_id = req.user.id;
 
     try {
       // Start transaction (simulated with sequence of steps, SQLite Cloud might support BEGIN TRANSACTION via SQL)
       
       // 1. Create Order
-      await db.sql`INSERT INTO orders (client_id, total, status) VALUES (${client_id}, ${total}, 'Pendente')`;
+      await db.sql`INSERT INTO orders (client_id, total, status, delivery_method, payment_method) VALUES (${client_id}, ${total}, 'Pendente', ${deliveryMethod}, ${paymentMethod})`;
       const orderResult = await db.sql`SELECT last_insert_rowid() as id`;
       const orderId = orderResult[0].id;
 

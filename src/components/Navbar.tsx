@@ -3,11 +3,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ShoppingBag, User as UserIcon, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { cartCount } = useCart();
 
   const links = [
     { name: 'Início', path: '/' },
@@ -61,10 +63,15 @@ export default function Navbar() {
 
             <Link
               to="/loja"
-              className="bg-gray-900 text-white px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 font-medium flex items-center gap-2"
+              className="bg-gray-900 text-white px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 font-medium flex items-center gap-2 relative"
             >
               <ShoppingBag size={18} />
               Loja Online
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm border-2 border-white">
+                  {cartCount}
+                </span>
+              )}
             </Link>
           </div>
 

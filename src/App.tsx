@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Home from './pages/Home';
@@ -18,10 +19,11 @@ import Clients from './pages/admin/Clients';
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
+      <CartProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
           <Route path="/loja" element={<Shop />} />
           <Route path="/login" element={<ClientLogin />} />
           <Route path="/register" element={<ClientRegister />} />
@@ -47,6 +49,7 @@ export default function App() {
           </Route>
         </Routes>
       </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }
