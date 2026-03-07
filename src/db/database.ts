@@ -35,6 +35,23 @@ export async function initDb() {
       )
     `;
 
+    // Migration: Check for missing columns in clients table
+    const clientColumnsResult = await db.sql`PRAGMA table_info(clients)`;
+    const clientColumns = clientColumnsResult.map((col: any) => col.name);
+
+    if (!clientColumns.includes('email')) {
+      console.log('Migrating clients table: adding email column');
+      await db.sql`ALTER TABLE clients ADD COLUMN email TEXT UNIQUE`;
+    }
+    if (!clientColumns.includes('password')) {
+      console.log('Migrating clients table: adding password column');
+      await db.sql`ALTER TABLE clients ADD COLUMN password TEXT`;
+    }
+    if (!clientColumns.includes('address')) {
+      console.log('Migrating clients table: adding address column');
+      await db.sql`ALTER TABLE clients ADD COLUMN address TEXT`;
+    }
+
     // Orders table (formerly appointments)
     await db.sql`
       CREATE TABLE IF NOT EXISTS orders (
