@@ -35,22 +35,36 @@ export async function initDb() {
       )
     `;
 
-    // Migration: Check for missing columns in clients table
-    const clientColumnsResult = await db.sql`PRAGMA table_info(clients)`;
-    const clientColumns = clientColumnsResult.map((col: any) => col.name);
+    // Migration: Force add columns if they don't exist (using try-catch as robust fallback)
+    try {
+      await db.sql`ALTER TABLE clients ADD COLUMN email TEXT`;
+      console.log('Migration: Added email to clients');
+    } catch (e) { /* Column exists */ }
 
-    if (!clientColumns.includes('email')) {
-      console.log('Migrating clients table: adding email column');
-      await db.sql`ALTER TABLE clients ADD COLUMN email TEXT UNIQUE`;
-    }
-    if (!clientColumns.includes('password')) {
-      console.log('Migrating clients table: adding password column');
+    try {
+      await db.sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_email ON clients(email)`;
+    } catch (e) { /* Index exists or error */ }
+
+    try {
       await db.sql`ALTER TABLE clients ADD COLUMN password TEXT`;
-    }
-    if (!clientColumns.includes('address')) {
-      console.log('Migrating clients table: adding address column');
+      console.log('Migration: Added password to clients');
+    } catch (e) { /* Column exists */ }
+
+    try {
       await db.sql`ALTER TABLE clients ADD COLUMN address TEXT`;
-    }
+      console.log('Migration: Added address to clients');
+    } catch (e) { /* Column exists */ }
+
+    // Migration: Products table
+    try {
+      await db.sql`ALTER TABLE products ADD COLUMN category TEXT`;
+      console.log('Migration: Added category to products');
+    } catch (e) { /* Column exists */ }
+
+    try {
+      await db.sql`ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0`;
+      console.log('Migration: Added stock to products');
+    } catch (e) { /* Column exists */ }
 
     // Orders table (formerly appointments)
     await db.sql`
