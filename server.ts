@@ -12,6 +12,9 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Trust proxy is required for secure cookies behind a proxy (like in Cloud Run/AI Studio)
+  app.set('trust proxy', 1);
+
   // Initialize DB
   await initDb();
 
@@ -45,7 +48,11 @@ async function startServer() {
       }
 
       const token = jwt.sign({ username: user.username, id: user.id, role: 'admin' }, SECRET_KEY, { expiresIn: '24h' });
-      res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.cookie('token', token, { 
+        httpOnly: true, 
+        secure: true, // Required for SameSite=None
+        sameSite: 'none' 
+      });
       res.json({ success: true, role: 'admin' });
     } catch (error) {
       console.error(error);
@@ -73,7 +80,11 @@ async function startServer() {
       const newId = result[0].id;
       
       const token = jwt.sign({ email, id: newId, role: 'client', name }, SECRET_KEY, { expiresIn: '24h' });
-      res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.cookie('token', token, { 
+        httpOnly: true, 
+        secure: true, // Required for SameSite=None
+        sameSite: 'none' 
+      });
       res.json({ success: true, role: 'client' });
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -93,7 +104,11 @@ async function startServer() {
       }
 
       const token = jwt.sign({ email: client.email, id: client.id, role: 'client', name: client.name }, SECRET_KEY, { expiresIn: '24h' });
-      res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.cookie('token', token, { 
+        httpOnly: true, 
+        secure: true, // Required for SameSite=None
+        sameSite: 'none' 
+      });
       res.json({ success: true, role: 'client' });
     } catch (error) {
       console.error(error);
@@ -103,7 +118,11 @@ async function startServer() {
 
   // Logout
   app.post('/api/logout', (req, res) => {
-    res.clearCookie('token');
+    res.clearCookie('token', { 
+      httpOnly: true, 
+      secure: true, 
+      sameSite: 'none' 
+    });
     res.json({ success: true });
   });
 
@@ -183,6 +202,35 @@ async function startServer() {
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Erro ao criar pedido' });
+    }
+  });
+
+  // Get single order by ID (for success page)
+  app.get('/api/orders/:id', authenticateToken, async (req: any, res) => {
+    const orderId = req.params.id;
+    const client_id = req.user.id;
+
+    try {
+      const orders = await db.sql`
+        SELECT * FROM orders WHERE id = ${orderId} AND client_id = ${client_id}
+      `;
+
+      if (orders.length === 0) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      const order = orders[0];
+      const items = await db.sql`
+        SELECT oi.*, p.name as product_name, p.image 
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = ${orderId}
+      `;
+
+      res.json({ ...order, items });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error fetching order' });
     }
   });
 

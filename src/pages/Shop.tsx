@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingCart, X, Trash2, ArrowRight, Check, ShoppingBag, Plus, Minus, Truck, Store, CreditCard, Banknote } from 'lucide-react';
+import { ShoppingCart, X, Trash2, ArrowRight, Check, ShoppingBag, Plus, Minus, Truck, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import Navbar from '../components/Navbar';
@@ -88,10 +88,10 @@ export default function Shop() {
       });
 
       if (res.ok) {
-        alert('Pedido realizado com sucesso!');
+        const data = await res.json();
         clearCart();
         setIsCartOpen(false);
-        navigate('/me');
+        navigate(`/order-success/${data.id}`);
       } else {
         alert('Erro ao finalizar pedido.');
       }

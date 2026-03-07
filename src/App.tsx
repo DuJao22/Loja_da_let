@@ -10,6 +10,7 @@ import AdminLogin from './pages/Login';
 import ClientLogin from './pages/ClientLogin';
 import ClientRegister from './pages/ClientRegister';
 import ClientProfile from './pages/ClientProfile';
+import OrderSuccess from './pages/OrderSuccess';
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import Products from './pages/admin/Products';
@@ -31,14 +32,19 @@ export default function App() {
           
           {/* Client Routes */}
           <Route path="/me" element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="client">
               <ClientProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/order-success/:id" element={
+            <ProtectedRoute requiredRole="client">
+              <OrderSuccess />
             </ProtectedRoute>
           } />
 
           {/* Admin Routes */}
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="admin">
               <AdminLayout />
             </ProtectedRoute>
           }>

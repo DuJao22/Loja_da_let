@@ -27,16 +27,9 @@ export default function ClientRegister() {
       });
 
       if (res.ok) {
-        // Fetch user data to update context
-        const meRes = await fetch('/api/me');
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          login(meData.user);
-        }
-
-        // Redirect back to where they came from or home
-        const from = location.state?.from || '/';
-        navigate(from, { state: location.state });
+        // Force reload to ensure cookies are sent and context is fresh
+        const from = location.state?.from?.pathname || '/me';
+        window.location.href = from;
       } else {
         let errorMessage = 'Erro ao criar conta';
         try {

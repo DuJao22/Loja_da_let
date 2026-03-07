@@ -24,16 +24,10 @@ export default function ClientLogin() {
       });
 
       if (res.ok) {
-        // Fetch user data to update context
-        const meRes = await fetch('/api/me');
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          login(meData.user);
-        }
-
-        // Redirect back to where they came from or home
-        const from = location.state?.from || '/';
-        navigate(from, { state: location.state });
+        // Force reload to ensure cookies are sent and context is fresh
+        // Redirect back to where they came from, or default to home/shop if no history
+        const from = location.state?.from?.pathname || '/';
+        window.location.href = from;
       } else {
         const data = await res.json();
         setError(data.error || 'Email ou senha incorretos');
