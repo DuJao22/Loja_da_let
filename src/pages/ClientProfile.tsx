@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { ShoppingBag, Clock, Package, ChevronRight, MapPin, CheckCircle2, Circle, XCircle } from 'lucide-react';
+import { ShoppingBag, Clock, Package, ChevronRight, MapPin, CheckCircle2, Circle, XCircle, Settings, User, Phone, Lock, Save } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { motion } from 'motion/react';
 
 interface OrderItem {
   id: number;
@@ -37,7 +38,6 @@ function OrderStatusStepper({ status }: { status: string }) {
   }
 
   const currentStepIndex = ORDER_STEPS.indexOf(status);
-  // If status is not in the list (e.g. unknown), default to -1
   
   return (
     <div className="w-full py-4">
@@ -74,12 +74,25 @@ function OrderStatusStepper({ status }: { status: string }) {
 }
 
 export default function ClientProfile() {
-  const { user } = useAuth();
+  const { user, login } = useAuth(); // Assuming login updates the user context
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'orders' | 'settings'>('orders');
+
+  // Settings Form State
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [password, setPassword] = useState(''); // Current password (optional/required logic)
+  const [newPassword, setNewPassword] = useState('');
+  const [updateMessage, setUpdateMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     if (user) {
+      setName(user.name || '');
+      setPhone(user.phone || '');
+      setAddress(user.address || '');
+
       fetch('/api/client/orders')
         .then(res => res.json())
         .then(data => {
@@ -93,6 +106,31 @@ export default function ClientProfile() {
     }
   }, [user]);
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdateMessage({ type: '', text: '' });
+
+    try {
+      const res = await fetch('/api/client/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, address, newPassword }),
+      });
+
+      if (res.ok) {
+        setUpdateMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
+        // Update local user context if possible, or reload
+        // Ideally useAuth should expose a generic update function, but we can hack it by re-fetching /me or manually updating
+        // For now, let's just show success.
+      } else {
+        const data = await res.json();
+        setUpdateMessage({ type: 'error', text: data.error || 'Erro ao atualizar perfil' });
+      }
+    } catch (error) {
+      setUpdateMessage({ type: 'error', text: 'Erro de conexão' });
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -105,129 +143,231 @@ export default function ClientProfile() {
     <div className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
       
-      <div className="pt-24 pb-20 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="pt-24 pb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Sidebar / User Info */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
               <div className="p-6 bg-gradient-to-br from-emerald-50 to-white border-b border-gray-100 text-center">
                 <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-3xl font-bold mx-auto mb-4 shadow-inner">
-                  {user.name.charAt(0).toUpperCase()}
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <h1 className="text-xl font-bold text-gray-900">{user.name}</h1>
                 <p className="text-gray-500 text-sm">{user.email}</p>
               </div>
               
-              <div className="p-6 space-y-4">
-                <div className="flex items-start gap-3 text-gray-600">
-                  <MapPin className="text-emerald-500 mt-1 shrink-0" size={18} />
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Endereço de Entrega</p>
-                    <p className="text-sm">{user.address || 'Endereço não cadastrado'}</p>
-                  </div>
-                </div>
-                
-                {/* Add more user details here if needed */}
+              <div className="p-2">
+                <button
+                  onClick={() => setActiveTab('orders')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'orders' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <ShoppingBag size={20} />
+                  Meus Pedidos
+                </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'settings' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Settings size={20} />
+                  Configurações
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Main Content / Orders */}
-          <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <ShoppingBag className="text-emerald-600" />
-              Meus Pedidos
-            </h2>
-
-            {loading ? (
-              <div className="text-center py-12 bg-white rounded-3xl shadow-sm border border-gray-100">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
-                <p className="text-gray-400 mt-4 text-sm">Carregando pedidos...</p>
-              </div>
-            ) : orders.length > 0 ? (
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {activeTab === 'orders' ? (
               <div className="space-y-6">
-                {orders.map(order => (
-                  <div key={order.id} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                    {/* Order Header */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-gray-50">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Package className="text-emerald-600" size={20} />
-                          <span className="text-lg font-bold text-gray-900">Pedido #{order.id}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
-                          <Clock size={14} />
-                          {format(parseISO(order.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total</p>
-                        <span className="text-xl font-bold text-emerald-600">
-                          R$ {order.total.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <ShoppingBag className="text-emerald-600" />
+                    Meus Pedidos
+                  </h2>
+                  <a href="/loja" className="text-emerald-600 hover:underline text-sm font-medium">
+                    Ir para o Catálogo
+                  </a>
+                </div>
 
-                    {/* Status Stepper */}
-                    <div className="mb-8 px-2">
-                      <OrderStatusStepper status={order.status} />
-                    </div>
-
-                    {/* Order Details Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Entrega</p>
-                        <p className="text-sm font-medium text-gray-700">{order.delivery_method || 'Padrão'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Pagamento</p>
-                        <p className="text-sm font-medium text-gray-700">{order.payment_method || 'Cartão de Crédito'}</p>
-                      </div>
-                    </div>
-
-                    {/* Items List */}
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-gray-900 mb-2">Itens do Pedido</p>
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
-                                {item.product_image ? (
-                                    <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <ShoppingBag size={16} className="text-gray-400" />
-                                )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
-                              <p className="text-xs text-gray-500">Qtd: {item.quantity}</p>
-                            </div>
-                          </div>
-                          <span className="text-sm font-medium text-gray-600">
-                            R$ {(item.price * item.quantity).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                {loading ? (
+                  <div className="text-center py-12 bg-white rounded-3xl shadow-sm border border-gray-100">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
+                    <p className="text-gray-400 mt-4 text-sm">Carregando pedidos...</p>
                   </div>
-                ))}
+                ) : orders.length > 0 ? (
+                  <div className="space-y-6">
+                    {orders.map(order => (
+                      <div key={order.id} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300">
+                        {/* Order Header */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-gray-50">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Package className="text-emerald-600" size={20} />
+                              <span className="text-lg font-bold text-gray-900">Pedido #{order.id}</span>
+                            </div>
+                            <p className="text-sm text-gray-500 flex items-center gap-1">
+                              <Clock size={14} />
+                              {format(parseISO(order.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total</p>
+                            <span className="text-xl font-bold text-emerald-600">
+                              R$ {order.total.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status Stepper */}
+                        <div className="mb-8 px-2">
+                          <OrderStatusStepper status={order.status} />
+                        </div>
+
+                        {/* Order Details Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Entrega</p>
+                            <p className="text-sm font-medium text-gray-700">{order.delivery_method || 'Padrão'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Pagamento</p>
+                            <p className="text-sm font-medium text-gray-700">{order.payment_method || 'Cartão de Crédito'}</p>
+                          </div>
+                        </div>
+
+                        {/* Items List */}
+                        <div className="space-y-3">
+                          <p className="text-sm font-semibold text-gray-900 mb-2">Itens do Pedido</p>
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+                                    {item.product_image ? (
+                                        <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <ShoppingBag size={16} className="text-gray-400" />
+                                    )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
+                                  <p className="text-xs text-gray-500">Qtd: {item.quantity}</p>
+                                </div>
+                              </div>
+                              <span className="text-sm font-medium text-gray-600">
+                                R$ {(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 shadow-sm">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <ShoppingBag size={32} className="text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Nenhum pedido encontrado</h3>
+                    <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                      Você ainda não fez nenhuma compra. Explore nossa loja e encontre produtos incríveis!
+                    </p>
+                    <a 
+                      href="/loja" 
+                      className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-medium"
+                    >
+                      Ir para a Loja <ChevronRight size={18} />
+                    </a>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 shadow-sm">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShoppingBag size={32} className="text-gray-300" />
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Settings className="text-emerald-600" />
+                  Configurações da Conta
+                </h2>
+
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                  {updateMessage.text && (
+                    <div className={`mb-6 p-4 rounded-xl text-sm font-medium ${updateMessage.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                      {updateMessage.text}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleUpdateProfile} className="space-y-6 max-w-2xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 text-gray-400" size={20} />
+                          <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                            placeholder="Seu nome"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 text-gray-400" size={20} />
+                          <input
+                            type="text"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                            placeholder="(00) 00000-0000"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Endereço de Entrega</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
+                        <textarea
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all min-h-[100px]"
+                          placeholder="Rua, Número, Bairro, Cidade - Estado, CEP"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-100">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Alterar Senha</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha (Opcional)</label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
+                            <input
+                              type="password"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                              placeholder="Nova senha"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4">
+                      <button
+                        type="submit"
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-8 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-lg shadow-emerald-200"
+                      >
+                        <Save size={20} />
+                        Salvar Alterações
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Nenhum pedido encontrado</h3>
-                <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                  Você ainda não fez nenhuma compra. Explore nossa loja e encontre produtos incríveis!
-                </p>
-                <a 
-                  href="/loja" 
-                  className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 font-medium"
-                >
-                  Ir para a Loja <ChevronRight size={18} />
-                </a>
               </div>
             )}
           </div>

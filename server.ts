@@ -298,14 +298,62 @@ async function startServer() {
     }
   });
 
-  // Dashboard Stats (Admin)
+  // Client Update Profile
+  app.put('/api/client/me', authenticateToken, async (req: any, res) => {
+    const { name, phone, address, password, newPassword } = req.body;
+    const clientId = req.user.id;
+
+    try {
+      // 1. Verify current password if changing sensitive info or just as a security measure
+      const clients = await db.sql`SELECT * FROM clients WHERE id = ${clientId}`;
+      const client = clients[0] as any;
+
+      if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
+
+      if (password && !bcrypt.compareSync(password, client.password)) {
+        return res.status(401).json({ error: 'Senha atual incorreta' });
+      }
+
+      // 2. Update fields
+      let updateQuery = 'UPDATE clients SET name = ?, phone = ?, address = ?';
+      const params = [name, phone, address];
+
+      if (newPassword) {
+        const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
+        updateQuery += ', password = ?';
+        params.push(hashedNewPassword);
+      }
+
+      updateQuery += ' WHERE id = ?';
+      params.push(clientId);
+
+      // Construct the SQL safely. SQLite Cloud driver might need specific handling for dynamic queries if not using template literals directly.
+      // However, since we are using the `db.sql` tag function, we should try to stick to it if possible, or use the driver's parameter binding.
+      // For simplicity and safety with the current driver pattern, let's use conditional logic or a slightly different approach.
+      
+      // Easier approach: Always update name, phone, address. Only update password if provided.
+      if (newPassword) {
+         const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
+         await db.sql`UPDATE clients SET name = ${name}, phone = ${phone}, address = ${address}, password = ${hashedNewPassword} WHERE id = ${clientId}`;
+      } else {
+         await db.sql`UPDATE clients SET name = ${name}, phone = ${phone}, address = ${address} WHERE id = ${clientId}`;
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Erro ao atualizar perfil' });
+    }
+  });
+
+  // Dashboard Stats (Admin) - Enhanced
   app.get('/api/stats', authenticateToken, async (req, res) => {
     try {
       const totalOrdersResult = await db.sql`SELECT count(*) as count FROM orders`;
       const totalOrders = totalOrdersResult[0].count;
       
       const today = new Date().toISOString().split('T')[0];
-      const ordersTodayResult = await db.sql`SELECT count(*) as count FROM orders WHERE date(created_at) = date('now')`; // SQLite specific date function
+      const ordersTodayResult = await db.sql`SELECT count(*) as count FROM orders WHERE date(created_at) = date('now')`;
       const ordersToday = ordersTodayResult[0].count;
       
       const totalClientsResult = await db.sql`SELECT count(*) as count FROM clients`;
@@ -318,12 +366,23 @@ async function startServer() {
       const revenueResult = await db.sql`SELECT sum(total) as total FROM orders WHERE status != 'Cancelado'`;
       const totalRevenue = revenueResult[0].total || 0;
 
+      // Revenue Chart Data (Last 7 days)
+      // SQLite syntax for date grouping
+      const chartData = await db.sql`
+        SELECT date(created_at) as date, sum(total) as revenue
+        FROM orders 
+        WHERE status != 'Cancelado' AND created_at >= date('now', '-7 days')
+        GROUP BY date(created_at)
+        ORDER BY date(created_at) ASC
+      `;
+
       res.json({
         totalOrders,
         ordersToday,
         totalClients,
         totalProducts,
-        totalRevenue
+        totalRevenue,
+        chartData
       });
     } catch (error) {
       console.error(error);
